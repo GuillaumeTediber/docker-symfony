@@ -1,5 +1,5 @@
-# See https://github.com/docker-library/php/blob/master/7.1/fpm/Dockerfile
-FROM php:7.1-fpm
+# See https://github.com/docker-library/php/blob/master/7.0/fpm/Dockerfile
+FROM php:7.0-fpm
 ARG TIMEZONE
 
 MAINTAINER Maxence POUTORD <maxence.poutord@gmail.com>
@@ -7,7 +7,24 @@ MAINTAINER Maxence POUTORD <maxence.poutord@gmail.com>
 RUN apt-get update && apt-get install -y \
     openssl \
     git \
-    unzip
+    unzip \
+    #next lines for dompdf php 7.0
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng12-dev \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+	&& docker-php-ext-install -j$(nproc) gd
+
+
+#for symfony config
+RUN apt-get install -y libicu-dev g++ \
+&& docker-php-ext-install intl \
+&& docker-php-ext-install zip
+
+# install apcu
+RUN pecl install apcu \
+&& docker-php-ext-enable apcu
+
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -34,7 +51,6 @@ RUN echo "xdebug.idekey=\"PHPSTORM\"" >> /usr/local/etc/php/conf.d/docker-php-ex
 RUN echo "xdebug.remote_port=9001" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 
-RUN echo 'alias sf="php app/console"' >> ~/.bashrc
-RUN echo 'alias sf3="php bin/console"' >> ~/.bashrc
+RUN echo 'alias sf="php bin/console"' >> ~/.bashrc
 
 WORKDIR /var/www/symfony
